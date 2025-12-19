@@ -196,3 +196,90 @@ function addQuote() {
 // At the bottom of script.js
 populateCategories();
 filterQuotes(); // Apply the filter stored in local storage on page load
+
+const SERVER_URL = 'https://jsonplaceholder.typicode.com/posts';
+
+// Function to fetch quotes from the server
+async function fetchQuotesFromServer() {
+  try {
+    const response = await fetch(SERVER_URL);
+    const serverQuotes = await response.json();
+    
+    // JSONPlaceholder returns posts, let's map them to our quote structure
+    return serverQuotes.slice(0, 5).map(post => ({
+      text: post.title,
+      category: "Server"
+    }));
+  } catch (error) {
+    console.error("Error fetching from server:", error);
+  }
+}
+
+// Function to post a quote to the server
+async function syncQuotes() {
+  try {
+    const response = await fetch(SERVER_URL, {
+      method: 'POST',
+      body: JSON.stringify(quotes),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      alert("Quotes synced with server!");
+    }
+  } catch (error) {
+    console.error("Error syncing quotes:", error);
+  }
+}
+async function syncWithServer() {
+  const serverQuotes = await fetchQuotesFromServer();
+  
+  // Conflict Resolution: Check if server has new items
+  let newQuotesFound = false;
+  
+  serverQuotes.forEach(sQuote => {
+    const exists = quotes.some(lQuote => lQuote.text === sQuote.text);
+    if (!exists) {
+      quotes.push(sQuote);
+      newQuotesFound = true;
+    }
+  });
+
+  if (newQuotesFound) {
+    saveQuotes();
+    populateCategories();
+    showNotification("New quotes synced from server. Data has been updated.");
+  }
+}
+
+// Periodic Sync (Every 30 seconds)
+setInterval(syncWithServer, 30000);
+function showNotification(message) {
+  const notifyDiv = document.getElementById("notification");
+  notifyDiv.textContent = message;
+  
+  // Clear notification after 5 seconds
+  setTimeout(() => {
+    notifyDiv.textContent = "";
+  }, 5000);
+}
+async function addQuote() {
+  const textInput = document.getElementById("newQuoteText");
+  const categoryInput = document.getElementById("newQuoteCategory");
+
+  if (textInput.value && categoryInput.value) {
+    const newQuote = { text: textInput.value, category: categoryInput.value };
+    quotes.push(newQuote);
+    
+    saveQuotes();
+    populateCategories();
+    
+    // Sync to server after local addition
+    await syncQuotes(); 
+
+    textInput.value = "";
+    categoryInput.value = "";
+  }
+}
