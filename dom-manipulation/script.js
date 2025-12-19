@@ -139,4 +139,60 @@ function importFromJsonFile(event) {
     }
   };
   fileReader.readAsText(event.target.files[0]);
+} 
+function populateCategories() {
+  const categoryFilter = document.getElementById("categoryFilter");
+  
+  // Extract unique categories using a Set
+  const categories = [...new Set(quotes.map(quote => quote.category))];
+  
+  // Reset filter but keep the "All" option
+  categoryFilter.innerHTML = '<option value="all">All Categories</option>';
+  
+  categories.forEach(category => {
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category;
+    categoryFilter.appendChild(option);
+  });
+
+  // Restore the last selected filter from Local Storage
+  const lastFilter = localStorage.getItem('lastSelectedCategory') || 'all';
+  categoryFilter.value = lastFilter;
 }
+function filterQuotes() {
+  const selectedCategory = document.getElementById("categoryFilter").value;
+  localStorage.setItem('lastSelectedCategory', selectedCategory);
+  
+  const quoteDisplay = document.getElementById("quoteDisplay");
+  
+  // Filter the quotes
+  const filteredQuotes = selectedCategory === 'all' 
+    ? quotes 
+    : quotes.filter(quote => quote.category === selectedCategory);
+
+  // Clear and update display with the first quote of the filtered list (or a random one)
+  if (filteredQuotes.length > 0) {
+    const randomQuote = filteredQuotes[Math.floor(Math.random() * filteredQuotes.length)];
+    quoteDisplay.innerHTML = `<p>"${randomQuote.text}"</p><em>- ${randomQuote.category}</em>`;
+  } else {
+    quoteDisplay.innerHTML = "No quotes available for this category.";
+  }
+}
+function addQuote() {
+  const text = document.getElementById("newQuoteText").value;
+  const category = document.getElementById("newQuoteCategory").value;
+
+  if (text && category) {
+    quotes.push({ text, category });
+    saveQuotes();
+    populateCategories(); // Refresh the dropdown to include the new category
+    
+    document.getElementById("newQuoteText").value = "";
+    document.getElementById("newQuoteCategory").value = "";
+    alert("Quote added!");
+  }
+}
+// At the bottom of script.js
+populateCategories();
+filterQuotes(); // Apply the filter stored in local storage on page load
